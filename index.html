@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.io Chat</title>
+</head>
+<body>
+  <b style="font-size: 30px;">Username: <span id="username"></span></b>
+  <ul id="messages"></ul>
+  <p>Direct Message</p>
+  <form id="messageForm">
+    <input id="receiverInput" placeholder="Receiver" autocomplete="off" />
+    <input id="messageInput" placeholder="Message" autocomplete="off" />
+    <button>Send DM</button>
+  </form>
+
+  
+  <form id="broadcastForm">
+    <input id="broadcastMessage" placeholder="Broadcast Message" autocomplete="off" />
+    <button>Send Broadcast</button>
+  </form>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const username = prompt('Username?')
+    let sender;
+    if (username) {
+      socket.emit('set_username', { username })
+      const userText = document.getElementById('username')
+      userText.innerHTML = username
+      sender = username
+      socket.emit('histories', { sender })
+    }
+
+    // Listen for new messages from the server
+    socket.on('new_message', async (data) => {
+      const messages = document.getElementById('messages');
+      const li = document.createElement('li');
+      li.textContent = `@${data.timestamp} From ${data.sender} to ${data.receiver}: ${data.message}`;
+      await messages.appendChild(li);
+    });
+
+    // Send a new message to the server when the form is submitted
+    document.getElementById('messageForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const receiver = document.getElementById('receiverInput').value.trim();
+      const message = document.getElementById('messageInput').value.trim();
+
+      if (message !== '' && receiver !== '') {
+        socket.emit('direct_message', { sender, receiver, message });
+        receiver.value = '';
+        message.value = '';
+      }
+    });
+
+    document.getElementById('broadcastForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const broadcast = document.getElementById('broadcastMessage').value.trim();
+
+      if (broadcast !== '') {
+        socket.emit('broadcast', { sender, broadcast });
+        broadcast.value = '';
+      }
+    });
+  </script>
+</body>
+</html>
